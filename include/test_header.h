@@ -1,6 +1,6 @@
 #ifndef TEST_HEADER_H
 #define TEST_HEADER_H
 
-void test_func(void);
+int add(int a, int b);
 
 #endif
