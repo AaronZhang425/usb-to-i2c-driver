@@ -22,7 +22,9 @@ static int __init module_init_func(void) {
 
     // Error getting major characer device failed
     if (major_device_num < 0) {
-        printk("Could not assign major device number");
+        printk("Could not assign major device number.\n");
+        printk("Failed major device number: %d\n", major_device_num);
+        
         return major_device_num;
 
     }
