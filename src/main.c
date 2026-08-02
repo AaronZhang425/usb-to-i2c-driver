@@ -11,34 +11,78 @@ MODULE_DESCRIPTION("Read data USB devices hosted by Pi Pico I2C slave");
 MODULE_AUTHOR("Aaron Zhang");
 MODULE_VERSION("0.1");
 
-static int major_device_num;
+// static int major_device_num;
+
+static dev_t device_number;
+static struct cdev cdev_info;
 
 static int __init module_init_func(void) {
-    printk("Initializing the custom Kerenel module\n");
+    printk(KERN_NOTICE "Initializing the custom usb_to_i2c module\n");
 
-    const struct file_operations* driver_fops = getFileOperations();
+    int status;
 
-    major_device_num = register_chrdev(0, "usb_to_i2c", driver_fops);
+#ifdef STATIC_DEVICE_NUMBER
+    device_number = STATIC_DEVICE_NUMBER;
+    status = register_chrdev_region(device_number, MINORMASK + 1, "usb_to_i2c");
 
-    // Error getting major characer device failed
-    if (major_device_num < 0) {
-        printk("Could not assign major device number.\n");
-        printk("Failed major device number: %d\n", major_device_num);
-        
-        return major_device_num;
+#else
+    status = alloc_chrdev_region(&device_number, 0, MINORMASK + 1, "usb_to_i2c");
+
+#endif
+
+    if (status) {
+        printk(KERN_ERR "usb_to_i2c: Could not reserve a region of device numbers\n");
+        return status;
 
     }
+
+    // Get the driver file operations available
+    const struct file_operations* driver_fops = getFileOperations();
+
+    cdev_init(&cdev_info, driver_fops);
+    cdev_info.owner = THIS_MODULE;
+
+    status = cdev_add(&cdev_info, device_number, MINORMASK + 1);
+
+    if (status) {
+        printk(KERN_ERR "usb_to_i2c: error adding cdev");
+        goto free_device_number;
+
+    }
+
+    printk(
+        KERN_INFO "usb_to_i2c:\nMajor: %d\nMinor: %d\n",
+        MAJOR(device_number),
+        MINOR(device_number)
+    );
     
-    printk("usb_to_i2c:\nMajor Device Number: %d\n", major_device_num);
+    // major_device_num = register_chrdev(0, "usb_to_i2c", driver_fops);
+
+    // // Error getting major character device failed
+    // if (major_device_num < 0) {
+    //     printk(KERN_ERR "Could not assign major device number.\n");
+    //     printk(KERN_ERR "Failed major number: %d\n", major_device_num);
+    //     return major_device_num;
+
+    // }
+
+    // prink("usb_to_i2c:\nMajor device number: %d\n", major_device_num);
 
     return 0;
-    
+
+free_device_number:
+    unregister_chrdev_region(device_number, MINORMASK + 1);
+    return status;
+
 }
 
 static void __exit module_end_func(void) {
-    printk("Exiting the custom Kernel module\n");
+    printk(KERN_NOTICE "Exiting the custom Kernel module\n");
     
-    unregister_chrdev(major_device_num, "usb_to_i2c"); 
+    // unregister_chrdev(major_device_num);
+
+    cdev_del(&cdev_info);
+    unregister_chrdev_region(device_number, MINORMASK + 1);
 
 }
 
