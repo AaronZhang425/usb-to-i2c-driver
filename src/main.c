@@ -17,6 +17,8 @@ MODULE_VERSION("0.1");
 static dev_t device_number;
 static struct cdev cdev_info;
 
+static struct class* device_class;
+
 static int __init module_init_func(void) {
     printk(KERN_NOTICE "Initializing the custom usb_to_i2c module\n");
 
@@ -70,7 +72,42 @@ static int __init module_init_func(void) {
 
     // prink("usb_to_i2c:\nMajor device number: %d\n", major_device_num);
 
+    device_class = class_create("usb_to_i2c_class");
+
+    if (!device_class) {
+        printk(KERR_ERR "usb_to_i2c: Could not create \"usb_to_i2c_class\" device class\n");
+        status = ENOMEM;
+        goto delete_cdev;
+
+    }
+
+    if(
+        !device_create(
+            device_class,
+            NULL,
+            device_number,
+            NULL,
+            "usb_to_i2c%d",
+            0
+        )
+    ) {
+        printk(KERR_ERR "usb_to_i2c: Could not create \"usb_to_i2c_class0\" device\n");       
+        status = ENOMEM;
+        goto delete_class;
+
+    }
+
+    printk(KERR_INFO "usb_to_i2c: Created device under /sys/class/usb_to_i2c_class0\n")
+
     return 0;
+
+delete_class:
+    class_unregister(device_class);
+    class_destory(device_class);
+
+delete_cdev:
+    cdev_del(&cdev_info;)
+
 
 free_device_number:
     unregister_chrdev_region(device_number, MINORMASK + 1);
@@ -83,6 +120,9 @@ static void __exit module_end_func(void) {
     
     // unregister_chrdev(major_device_num);
 
+    device_destory(device_class, device_number);
+    class_unregsiter(device_class);
+    class_destory(device_class);
     cdev_del(&cdev_info);
     unregister_chrdev_region(device_number, MINORMASK + 1);
 
