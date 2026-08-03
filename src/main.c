@@ -13,12 +13,14 @@ MODULE_VERSION("0.1");
 
 // static int major_device_num;
 
+// Represents the device number. Contains the major and minor numbers
 static dev_t device_number;
 static struct cdev cdev_info;
 
 static int __init module_init_func(void) {
     printk(KERN_NOTICE "Initializing the custom usb_to_i2c module\n");
 
+    // Stores the status of operations
     int status;
 
 #ifdef STATIC_DEVICE_NUMBER
