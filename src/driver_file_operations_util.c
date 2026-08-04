@@ -5,25 +5,37 @@
 
 #include "driver_file_operations_util.h"
 
+#define MEMSIZE 64
+
 static int open_file(struct inode* inode, struct file* file) {
-    printk(KERN_INFO "usb_to_i2c: open called");
-    printk(
-        KERN_INFO "usb_to_i2c:\nMajor: %d\nMinor: %d\n",
+    pr_info("usb_to_i2c: open called");
+    pr_info(
+        "usb_to_i2c:\nMajor: %d\nMinor: %d\n",
         imajor(inode),
         iminor(inode)
     );
+
+    file -> private_data = kmalloc(MEMSIZE, GFP_KERNEL);
+
+    if (!file -> private_data) {
+        pr_err("usb_to_i2c: Out of memory\n");
+        return ENOMEM;
+
+    }
 
     return 0;
     
 }
 
 static int release_file(struct inode* inode, struct file* file) {
-    printk(KERN_INFO "usb_to_i2c: release called");
-    printk(
-        KERN_INFO "usb_to_i2c:\nMajor: %d\nMinor: %d\n",
+    pr_info("usb_to_i2c: release called");
+    pr_info(
+        "usb_to_i2c:\nMajor: %d\nMinor: %d\n",
         imajor(inode),
         iminor(inode)
     );
+
+    kfree(file -> private_data);
 
     return 0;
 
@@ -35,9 +47,20 @@ static ssize_t read_file(
     size_t length,
     loff_t* offset
 ) {
-    printk(KERN_INFO "usb_to_i2c: read called");
+    pr_info("usb_to_i2c: read called\n");
+    
+    char* text = file -> private_data;
 
-    return 0;
+    int not_copied, delta, to_copy = (
+        (length + *offset) < MEMSIZE ? length : (MEMSIZE - *offset)
+    );
+
+    not_copied = copy_to_user(user_buffer, &text[*offset], to_copy);
+    delta = to_copy - not_copied;
+
+    *offset += delta;
+
+    return delta;
 
 }
 
@@ -47,9 +70,20 @@ static ssize_t write_file(
     size_t length,
     loff_t* offset
 ) {
-    printk(KERN_INFO "usb_to_i2c: write called");
+    pr_info("usb_to_i2c: write called\n");
     
-    return 0;
+    char *text = file -> private_data;
+
+    int not_copied, delta, not_copied = (
+        (len + *offset) < MEMSIZE ? length : (MEMSIZE - *offset)
+    );
+
+    not_copied = copy_from_user(&text[*offset], user_buffer, to_copy)
+    delta = to_copy - not_copied;
+
+    *offset += delta;
+
+    return delta;
 
 }
 
