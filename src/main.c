@@ -98,16 +98,16 @@ static int __init module_init_func(void) {
 
     }
 
-    pr_info("usb_to_i2c: Created device under /sys/class/usb_to_i2c_class0\n")
+    pr_info("usb_to_i2c: Created device under /sys/class/usb_to_i2c_class0\n");
 
     return 0;
 
 delete_class:
     class_unregister(device_class);
-    class_destory(device_class);
+    class_destroy(device_class);
 
 delete_cdev:
-    cdev_del(&cdev_info;)
+    cdev_del(&cdev_info);
 
 free_device_number:
     unregister_chrdev_region(device_number, MINORMASK + 1);
@@ -120,9 +120,9 @@ static void __exit module_end_func(void) {
     
     // unregister_chrdev(major_device_num);
 
-    device_destory(device_class, device_number);
-    class_unregsiter(device_class);
-    class_destory(device_class);
+    device_destroy(device_class, device_number);
+    class_unregister(device_class);
+    class_destroy(device_class);
     cdev_del(&cdev_info);
     unregister_chrdev_region(device_number, MINORMASK + 1);
 

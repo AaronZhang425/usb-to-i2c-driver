@@ -74,11 +74,11 @@ static ssize_t write_file(
     
     char *text = file -> private_data;
 
-    int not_copied, delta, not_copied = (
-        (len + *offset) < MEMSIZE ? length : (MEMSIZE - *offset)
+    int not_copied, delta, to_copy = (
+        (length + *offset) < MEMSIZE ? length : (MEMSIZE - *offset)
     );
 
-    not_copied = copy_from_user(&text[*offset], user_buffer, to_copy)
+    not_copied = copy_from_user(&text[*offset], user_buffer, to_copy);
     delta = to_copy - not_copied;
 
     *offset += delta;
@@ -92,7 +92,8 @@ static struct file_operations driver_fops = {
     .open = open_file,
     .release = release_file,
     .read = read_file,
-    .write = write_file
+    .write = write_file,
+    .llseek = default_llseek
 };
 
 const struct file_operations* getFileOperations(void) {
