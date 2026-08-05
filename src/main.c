@@ -16,13 +16,14 @@ MODULE_VERSION("0.1");
 
 // Represents the device number. Contains the major and minor numbers
 static dev_t device_number;
+
 static struct cdev cdev_info;
 
 static struct class* device_class;
 
 static int __init module_init_func(void) {
     pr_notice("Initializing the custom usb_to_i2c module\n");
-
+ 
     // Stores the status of operations
     int status;
 
@@ -31,6 +32,7 @@ static int __init module_init_func(void) {
     status = register_chrdev_region(device_number, MINORMASK + 1, "usb_to_i2c");
 
 #else
+    // Dynamically allocate a region of minor device numbers
     status = alloc_chrdev_region(&device_number, 0, MINORMASK + 1, "usb_to_i2c");
 
 #endif
@@ -41,11 +43,13 @@ static int __init module_init_func(void) {
 
     }
 
+    cdev_info.owner = THIS_MODULE;
+
     // Get the driver file operations available
     const struct file_operations* driver_fops = getFileOperations();
 
+    // Create a chracter device
     cdev_init(&cdev_info, driver_fops);
-    cdev_info.owner = THIS_MODULE;
 
     status = cdev_add(&cdev_info, device_number, MINORMASK + 1);
 

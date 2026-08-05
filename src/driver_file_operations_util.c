@@ -7,7 +7,7 @@
 
 #define MEMSIZE 64
 
-static int open_file(struct inode* inode, struct file* file) {
+static int open_file(struct inode* inode, struct file* file_ptr) {
     pr_info("usb_to_i2c: open called");
     pr_info(
         "usb_to_i2c:\nMajor: %d\nMinor: %d\n",
@@ -15,9 +15,9 @@ static int open_file(struct inode* inode, struct file* file) {
         iminor(inode)
     );
 
-    file -> private_data = kmalloc(MEMSIZE, GFP_KERNEL);
+    file_ptr -> private_data = kmalloc(MEMSIZE, GFP_KERNEL);
 
-    if (!file -> private_data) {
+    if (!file_ptr -> private_data) {
         pr_err("usb_to_i2c: Out of memory\n");
         return ENOMEM;
 
@@ -27,7 +27,7 @@ static int open_file(struct inode* inode, struct file* file) {
     
 }
 
-static int release_file(struct inode* inode, struct file* file) {
+static int release_file(struct inode* inode, struct file* file_ptr) {
     pr_info("usb_to_i2c: release called");
     pr_info(
         "usb_to_i2c:\nMajor: %d\nMinor: %d\n",
@@ -35,21 +35,21 @@ static int release_file(struct inode* inode, struct file* file) {
         iminor(inode)
     );
 
-    kfree(file -> private_data);
+    kfree(file_ptr -> private_data);
 
     return 0;
 
 }
 
 static ssize_t read_file(
-    struct file* file,
+    struct file* file_ptr,
     char* __user user_buffer,
     size_t length,
     loff_t* offset
 ) {
     pr_info("usb_to_i2c: read called\n");
     
-    char* text = file -> private_data;
+    char* text = file_ptr -> private_data;
 
     int not_copied, delta, to_copy = (
         (length + *offset) < MEMSIZE ? length : (MEMSIZE - *offset)
@@ -65,14 +65,14 @@ static ssize_t read_file(
 }
 
 static ssize_t write_file(
-    struct file* file,
+    struct file* file_ptr,
     const char* __user user_buffer,
     size_t length,
     loff_t* offset
 ) {
     pr_info("usb_to_i2c: write called\n");
     
-    char *text = file -> private_data;
+    char *text = file_ptr -> private_data;
 
     int not_copied, delta, to_copy = (
         (length + *offset) < MEMSIZE ? length : (MEMSIZE - *offset)
@@ -87,13 +87,32 @@ static ssize_t write_file(
 
 }
 
+static long int file_ioctl(
+    struct file* file_ptr,
+    unsigned int cmd,
+    unsigned long args
+) {
+    pr_info("usb_to_i2c: ioctl called with cmd: %d and args %p\n", cmd, args);
+
+    switch (cmd) {
+
+        default:
+            return EOPNOTSUPP;
+
+    }
+    
+    return 0;
+
+}
+
 static struct file_operations driver_fops = {
     .owner = THIS_MODULE,
     .open = open_file,
     .release = release_file,
     .read = read_file,
     .write = write_file,
-    .llseek = default_llseek
+    .llseek = default_llseek,
+    .unlocked_ioctl = file_ioctl
 };
 
 const struct file_operations* getFileOperations(void) {
