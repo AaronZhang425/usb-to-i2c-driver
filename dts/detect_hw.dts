@@ -6,7 +6,7 @@
         target-path = "/";
         __overlay__ {
             my_device {
-                compatible = "pipico,usb_to_i2c_translator";
+                compatible = "pipico,usb_to_i2c_converter";
                 status = "okay";
             };
 
