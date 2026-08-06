@@ -4,8 +4,14 @@ usb_to_i2c_driver-y := src/main.o src/driver_file_operations_util.o
 
 ccflags-y += -I$(PWD)/include -Wextra
 
+DEVICE_TREE := detect_hw
+
 all:
 	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) modules
 
+dtbo:
+	dtc -@ -I dts -O dtb -o $(PWD)/$(DEVICE_TREE).dtbo $(PWD)/dts/$(DEVICE_TREE).dts
+
 clean:
-	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) clean 
+	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) clean
+	rm -f $(PWD)/$(DEVICE_TREE).dtbo

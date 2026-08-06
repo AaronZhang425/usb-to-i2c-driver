@@ -92,7 +92,7 @@ static long int file_ioctl(
     unsigned int cmd,
     unsigned long args
 ) {
-    pr_info("usb_to_i2c: ioctl called with cmd: %d and args %p\n", cmd, args);
+    pr_info("usb_to_i2c: ioctl called with cmd: %d and args %lu\n", cmd, args);
 
     switch (cmd) {
 
