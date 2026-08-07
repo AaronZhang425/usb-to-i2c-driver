@@ -17,14 +17,14 @@ static const struct of_device_id device_ids[] = {
 
 MODULE_DEVICE_TABLE(of, device_ids);
 
-static int device_probe(struct platform_device* platform_device_ptr) {
+static int device_probe(struct platform_device *platform_device_ptr) {
     pr_info("usb_to_i2c: Probe function is falled\n");
 
     return 0;
 
 }
 
-static void device_remove(struct platform_device* platform_device_ptr) {
+static void device_remove(struct platform_device *platform_device_ptr) {
     pr_info("usb_to_i2c: Remove function is falled\n");
 
 }
@@ -44,7 +44,7 @@ static dev_t device_number;
 
 static struct cdev cdev_info;
 
-static struct class* device_class;
+static struct class *device_class;
 
 static int __init module_init_func(void) {
     pr_notice("Initializing the custom usb_to_i2c module\n");
@@ -71,7 +71,7 @@ static int __init module_init_func(void) {
     cdev_info.owner = THIS_MODULE;
     
     // Get the driver file operations available
-    const struct file_operations* driver_fops = getFileOperations();
+    const struct file_operations *driver_fops = getFileOperations();
     
     // Create a chracter device
     cdev_init(&cdev_info, driver_fops);

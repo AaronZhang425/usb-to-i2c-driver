@@ -7,12 +7,12 @@
 
 #define MEMSIZE 64
 
-static int open_file(struct inode* inode, struct file* file_ptr) {
+static int open_file(struct inode *inode_ptr, struct file *file_ptr) {
     pr_info("usb_to_i2c: open called");
     pr_info(
         "usb_to_i2c:\nMajor: %d\nMinor: %d\n",
-        imajor(inode),
-        iminor(inode)
+        imajor(inode_ptr),
+        iminor(inode_ptr)
     );
 
     file_ptr -> private_data = kmalloc(MEMSIZE, GFP_KERNEL);
@@ -27,12 +27,12 @@ static int open_file(struct inode* inode, struct file* file_ptr) {
     
 }
 
-static int release_file(struct inode* inode, struct file* file_ptr) {
+static int release_file(struct inode *inode_ptr, struct file *file_ptr) {
     pr_info("usb_to_i2c: release called");
     pr_info(
         "usb_to_i2c:\nMajor: %d\nMinor: %d\n",
-        imajor(inode),
-        iminor(inode)
+        imajor(inode_ptr),
+        iminor(inode_ptr)
     );
 
     kfree(file_ptr -> private_data);
@@ -42,14 +42,14 @@ static int release_file(struct inode* inode, struct file* file_ptr) {
 }
 
 static ssize_t read_file(
-    struct file* file_ptr,
-    char* __user user_buffer,
+    struct file *file_ptr,
+    char __user *user_buffer,
     size_t length,
-    loff_t* offset
+    loff_t *offset
 ) {
     pr_info("usb_to_i2c: read called\n");
     
-    char* text = file_ptr -> private_data;
+    char *text = file_ptr -> private_data;
 
     int not_copied, delta, to_copy = (
         (length + *offset) < MEMSIZE ? length : (MEMSIZE - *offset)
@@ -65,10 +65,10 @@ static ssize_t read_file(
 }
 
 static ssize_t write_file(
-    struct file* file_ptr,
-    const char* __user user_buffer,
+    struct file *file_ptr,
+    const char __user *user_buffer,
     size_t length,
-    loff_t* offset
+    loff_t *offset
 ) {
     pr_info("usb_to_i2c: write called\n");
     
@@ -88,7 +88,7 @@ static ssize_t write_file(
 }
 
 static long int file_ioctl(
-    struct file* file_ptr,
+    struct file *file_ptr,
     unsigned int cmd,
     unsigned long args
 ) {
@@ -115,7 +115,7 @@ static struct file_operations driver_fops = {
     .unlocked_ioctl = file_ioctl
 };
 
-const struct file_operations* getFileOperations(void) {
+const struct file_operations *getFileOperations(void) {
     return &driver_fops; 
 
 }
