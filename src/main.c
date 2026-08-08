@@ -6,6 +6,7 @@
 #include <linux/slab.h>
 #include <linux/mod_devicetable.h>
 #include <linux/platform_device.h>
+#include <linux/property.h>
 
 #include "driver_file_operations_util.h"
 
@@ -16,14 +17,26 @@ static const struct of_device_id device_ids[] = {
 };
 
 static int device_probe(struct platform_device *platform_device_ptr) {
-    pr_info("usb_to_i2c: Probe function is falled\n");
+    dev_info(
+        &platform_device_ptr->dev,
+        "usb_to_i2c: Probe function is falled\n"
+    );
+
+    // if (!device_property_present(dev, "compatible")) {
+    //     pr_err("Cannot get compatiable string");
+    //     return -1;
+
+    // }
 
     return 0;
 
 }
 
 static void device_remove(struct platform_device *platform_device_ptr) {
-    pr_info("usb_to_i2c: Remove function is falled\n");
+    dev_info(
+        &platform_device_ptr->dev,
+        "usb_to_i2c: Remove function is falled\n"
+    );
 
 }
 
@@ -145,7 +158,7 @@ static int __init module_init_func(void) {
 static void __exit module_end_func(void) {
     pr_notice("Exiting the custom Kernel module\n");
     
-    platform_driver_runregister(&driver_info);
+    platform_driver_unregister(&driver_info);
 
     // // unregister_chrdev(major_device_num);
     

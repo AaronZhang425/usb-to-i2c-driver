@@ -15,9 +15,9 @@ static int open_file(struct inode *inode_ptr, struct file *file_ptr) {
         iminor(inode_ptr)
     );
 
-    file_ptr -> private_data = kmalloc(MEMSIZE, GFP_KERNEL);
+    file_ptr->private_data = kmalloc(MEMSIZE, GFP_KERNEL);
 
-    if (!file_ptr -> private_data) {
+    if (!file_ptr->private_data) {
         pr_err("usb_to_i2c: Out of memory\n");
         return ENOMEM;
 
@@ -35,7 +35,7 @@ static int release_file(struct inode *inode_ptr, struct file *file_ptr) {
         iminor(inode_ptr)
     );
 
-    kfree(file_ptr -> private_data);
+    kfree(file_ptr->private_data);
 
     return 0;
 
