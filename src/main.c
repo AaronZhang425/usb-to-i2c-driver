@@ -60,98 +60,98 @@ static struct platform_driver driver_info {
 static int __init module_init_func(void) {
     pr_notice("Initializing the custom usb_to_i2c module\n");
     
-    return platform_driver_register(&driver_info);
-//     // Stores the status of operations
-//     int status;
+    // return platform_driver_register(&driver_info);
+    // Stores the status of operations
+    int status;
     
-//     #ifdef STATIC_DEVICE_NUMBER
-//     device_number = STATIC_DEVICE_NUMBER;
-//     status = register_chrdev_region(device_number, MINORMASK + 1, "usb_to_i2c");
-    
-//     #else
-//     // Dynamically allocate a region of minor device numbers
-//     status = alloc_chrdev_region(&device_number, 0, MINORMASK + 1, "usb_to_i2c");
-    
-//     #endif
-    
-//     if (status) {
-//         pr_err("usb_to_i2c: Could not reserve a region of device numbers\n");
-//         return status;
+    #ifdef STATIC_DEVICE_NUMBER
+        device_number = STATIC_DEVICE_NUMBER;
+        status = register_chrdev_region(device_number, MINORMASK + 1, "usb_to_i2c");
         
-//     }
+    #else
+    // Dynamically allocate a region of minor device numbers
+        status = alloc_chrdev_region(&device_number, 0, MINORMASK + 1, "usb_to_i2c");
     
-//     cdev_info.owner = THIS_MODULE;
+    #endif
     
-//     // Get the driver file operations available
-//     const struct file_operations *driver_fops = getFileOperations();
-    
-//     // Create a chracter device
-//     cdev_init(&cdev_info, driver_fops);
-//     status = cdev_add(&cdev_info, device_number, MINORMASK + 1);
-    
-//     if (status) {
-//         pr_err("usb_to_i2c: error adding cdev\n");
-//         goto free_device_number;
+    if (status) {
+        pr_err("usb_to_i2c: Could not reserve a region of device numbers\n");
+        return status;
         
-//     }
+    }
     
-//     pr_info(
-//         "usb_to_i2c:\nMajor: %d\nMinor: %d\n",
-//         MAJOR(device_number),
-//         MINOR(device_number)
-//     );
+    cdev_info.owner = THIS_MODULE;
     
-//     // major_device_num = register_chrdev(0, "usb_to_i2c", driver_fops);
+    // Get the driver file operations available
+    const struct file_operations *driver_fops = getFileOperations();
     
-//     // // Error getting major character device failed
-//     // if (major_device_num < 0) {
-//     //     printk(KERN_ERR "Could not assign major device number.\n");
-//     //     printk(KERN_ERR "Failed major number: %d\n", major_device_num);
-//     //     return major_device_num;
+    // Create a chracter device
+    cdev_init(&cdev_info, driver_fops);
+    status = cdev_add(&cdev_info, device_number, MINORMASK + 1);
     
-//     // }
-    
-//     // prink("usb_to_i2c:\nMajor device number: %d\n", major_device_num);
-    
-//     device_class = class_create("usb_to_i2c_class");
-    
-//     if (!device_class) {
-//         pr_err("usb_to_i2c: Could not create \"usb_to_i2c_class\" device class\n");
-//         status = ENOMEM;
-//         goto delete_cdev;
+    if (status) {
+        pr_err("usb_to_i2c: error adding cdev\n");
+        goto free_device_number;
         
-//     }
+    }
     
-//     if (
-//         !device_create(
-//             device_class,
-//             NULL,
-//             device_number,
-//             NULL,
-//             "usb_to_i2c%d",
-//             0
-//         )
-//     ) {
-//         pr_err("usb_to_i2c: Could not create \"usb_to_i2c_class0\" device\n");       
-//         status = ENOMEM;
-//         goto delete_class;
+    pr_info(
+        "usb_to_i2c:\nMajor: %d\nMinor: %d\n",
+        MAJOR(device_number),
+        MINOR(device_number)
+    );
+    
+    // major_device_num = register_chrdev(0, "usb_to_i2c", driver_fops);
+    
+    // // Error getting major character device failed
+    // if (major_device_num < 0) {
+    //     printk(KERN_ERR "Could not assign major device number.\n");
+    //     printk(KERN_ERR "Failed major number: %d\n", major_device_num);
+    //     return major_device_num;
+    
+    // }
+    
+    // prink("usb_to_i2c:\nMajor device number: %d\n", major_device_num);
+    
+    device_class = class_create("usb_to_i2c_class");
+    
+    if (!device_class) {
+        pr_err("usb_to_i2c: Could not create \"usb_to_i2c_class\" device class\n");
+        status = ENOMEM;
+        goto delete_cdev;
         
-//     }
+    }
     
-//     pr_info("usb_to_i2c: Created device under /sys/class/usb_to_i2c_class0\n");
+    if (
+        !device_create(
+            device_class,
+            NULL,
+            device_number,
+            NULL,
+            "usb_to_i2c%d",
+            0
+        )
+    ) {
+        pr_err("usb_to_i2c: Could not create \"usb_to_i2c_class0\" device\n");       
+        status = ENOMEM;
+        goto delete_class;
+        
+    }
     
-//     return 0;
+    pr_info("usb_to_i2c: Created device under /sys/class/usb_to_i2c_class0\n");
     
-// delete_class:
-//     class_unregister(device_class);
-//     class_destroy(device_class);
+    return platform_driver_register(&driver_info);;
     
-// delete_cdev:
-//     cdev_del(&cdev_info);
+delete_class:
+    class_unregister(device_class);
+    class_destroy(device_class);
     
-// free_device_number:
-//     unregister_chrdev_region(device_number, MINORMASK + 1);
-//     return status;
+delete_cdev:
+    cdev_del(&cdev_info);
+    
+free_device_number:
+    unregister_chrdev_region(device_number, MINORMASK + 1);
+    return status;
     
 }
     
