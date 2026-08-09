@@ -6,26 +6,37 @@
 #include <linux/slab.h>
 #include <linux/mod_devicetable.h>
 #include <linux/platform_device.h>
+#include <linux/property.h>
 
 #include "driver_file_operations_util.h"
 
 static const struct of_device_id device_ids[] = {
     {.compatible = "pipico,usb_to_i2c_converter"},
-    {} /*Signifies end of list*/
+    {} /*Empty element signifies end of list*/
 
 };
 
-MODULE_DEVICE_TABLE(of, device_ids);
-
 static int device_probe(struct platform_device *platform_device_ptr) {
-    pr_info("usb_to_i2c: Probe function is falled\n");
+    dev_info(
+        &platform_device_ptr->dev,
+        "usb_to_i2c: Probe function is falled\n"
+    );
+
+    // if (!device_property_present(dev, "compatible")) {
+    //     pr_err("Cannot get compatiable string");
+    //     return -1;
+
+    // }
 
     return 0;
 
 }
 
 static void device_remove(struct platform_device *platform_device_ptr) {
-    pr_info("usb_to_i2c: Remove function is falled\n");
+    dev_info(
+        &platform_device_ptr->dev,
+        "usb_to_i2c: Remove function is falled\n"
+    );
 
 }
 
@@ -40,25 +51,26 @@ static struct platform_driver driver_info {
 
 
 // Represents the device number. Contains the major and minor numbers
-static dev_t device_number;
+// static dev_t device_number;
 
-static struct cdev cdev_info;
+// static struct cdev cdev_info;
 
-static struct class *device_class;
+// static struct class *device_class;
 
 static int __init module_init_func(void) {
     pr_notice("Initializing the custom usb_to_i2c module\n");
     
+    // return platform_driver_register(&driver_info);
     // Stores the status of operations
     int status;
     
     #ifdef STATIC_DEVICE_NUMBER
-    device_number = STATIC_DEVICE_NUMBER;
-    status = register_chrdev_region(device_number, MINORMASK + 1, "usb_to_i2c");
-    
+        device_number = STATIC_DEVICE_NUMBER;
+        status = register_chrdev_region(device_number, MINORMASK + 1, "usb_to_i2c");
+        
     #else
     // Dynamically allocate a region of minor device numbers
-    status = alloc_chrdev_region(&device_number, 0, MINORMASK + 1, "usb_to_i2c");
+        status = alloc_chrdev_region(&device_number, 0, MINORMASK + 1, "usb_to_i2c");
     
     #endif
     
@@ -128,7 +140,7 @@ static int __init module_init_func(void) {
     
     pr_info("usb_to_i2c: Created device under /sys/class/usb_to_i2c_class0\n");
     
-    return 0;
+    return platform_driver_register(&driver_info);;
     
 delete_class:
     class_unregister(device_class);
@@ -146,18 +158,22 @@ free_device_number:
 static void __exit module_end_func(void) {
     pr_notice("Exiting the custom Kernel module\n");
     
-    // unregister_chrdev(major_device_num);
+    platform_driver_unregister(&driver_info);
+
+    // // unregister_chrdev(major_device_num);
     
-    device_destroy(device_class, device_number);
-    class_unregister(device_class);
-    class_destroy(device_class);
-    cdev_del(&cdev_info);
-    unregister_chrdev_region(device_number, MINORMASK + 1);
+    // device_destroy(device_class, device_number);
+    // class_unregister(device_class);
+    // class_destroy(device_class);
+    // cdev_del(&cdev_info);
+    // unregister_chrdev_region(device_number, MINORMASK + 1);
     
 }
     
 module_init(module_init_func);
 module_exit(module_end_func);
+
+MODULE_DEVICE_TABLE(of, device_ids);
 
 MODULE_LICENSE("Dual MIT/GPL");
 MODULE_DESCRIPTION("Read data USB devices hosted by Pi Pico I2C slave");

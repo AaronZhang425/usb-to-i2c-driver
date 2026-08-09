@@ -3,13 +3,32 @@
 
 / {
     fragment@0 {
-        target-path = "/";
+        target-path = "&i2c0";
+
         __overlay__ {
+            #address-cells = <1>;
+            #size-cells = <0>;
+
             my_device {
                 compatible = "pipico,usb_to_i2c_converter";
                 status = "okay";
+                reg = <0x17>;
             };
+        };
+    };
 
+    fragment@1 {
+        target-path = "&i2c1";
+
+        __overlay__ {
+            #address-cells = <1>;
+            #size-cells = <0>;
+
+            my_device {
+                compatible = "pipico,usb_to_i2c_converter";
+                status = "okay";
+                reg = <0x17>;
+            };
         };
     };
 
