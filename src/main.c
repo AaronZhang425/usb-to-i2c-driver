@@ -51,11 +51,11 @@ static struct platform_driver driver_info {
 
 
 // Represents the device number. Contains the major and minor numbers
-// static dev_t device_number;
+static dev_t device_number;
 
-// static struct cdev cdev_info;
+static struct cdev cdev_info;
 
-// static struct class *device_class;
+static struct class *device_class;
 
 static int __init module_init_func(void) {
     pr_notice("Initializing the custom usb_to_i2c module\n");
@@ -100,18 +100,6 @@ static int __init module_init_func(void) {
         MAJOR(device_number),
         MINOR(device_number)
     );
-    
-    // major_device_num = register_chrdev(0, "usb_to_i2c", driver_fops);
-    
-    // // Error getting major character device failed
-    // if (major_device_num < 0) {
-    //     printk(KERN_ERR "Could not assign major device number.\n");
-    //     printk(KERN_ERR "Failed major number: %d\n", major_device_num);
-    //     return major_device_num;
-    
-    // }
-    
-    // prink("usb_to_i2c:\nMajor device number: %d\n", major_device_num);
     
     device_class = class_create("usb_to_i2c_class");
     
@@ -158,15 +146,14 @@ free_device_number:
 static void __exit module_end_func(void) {
     pr_notice("Exiting the custom Kernel module\n");
     
-    platform_driver_unregister(&driver_info);
-
-    // // unregister_chrdev(major_device_num);
     
-    // device_destroy(device_class, device_number);
-    // class_unregister(device_class);
-    // class_destroy(device_class);
-    // cdev_del(&cdev_info);
-    // unregister_chrdev_region(device_number, MINORMASK + 1);
+    device_destroy(device_class, device_number);
+    class_unregister(device_class);
+    class_destroy(device_class);
+    cdev_del(&cdev_info);
+    unregister_chrdev_region(device_number, MINORMASK + 1);
+    
+    platform_driver_unregister(&driver_info);
     
 }
     
