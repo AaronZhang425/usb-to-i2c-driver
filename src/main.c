@@ -9,80 +9,85 @@
 #include <linux/platform_device.h>
 #include <linux/property.h>
 
-#include "driver_file_operations_util.h"
+#include "file_operations_util.h"
+#include "hardware_handler.h"
 
-static const struct of_device_id device_ids[] = {
-    {.compatible = "pipico,usb_to_i2c_converter"},
-    {} /*Empty element signifies end of list*/
+// static const struct of_device_id device_ids[] = {
+//     {.compatible = "pipico,usb_to_i2c_converter"},
+//     {} /*Empty element signifies end of list*/
 
-};
+// };
 
-static int i2c_deivce_probe(
-    struct i2c_client *client,
-    const struct i2c_device_id *id
-) {
-    pr_info("usb_to_i2c: Probe function\n");
+// MODULE_DEVICE_TABLE(of, device_ids);
 
-    // 0x17 is the temporary hard coded address of the i2c device.
-    // Later should be replaced with a read of device tree
-    if (!client->addr = 0x17) {
-        pr_info("usb_to_i2c: i2c device address does not match target");
+// static struct i2c_device_id i2c_ids[] {
+//     {"usb_to_i2c_converter", 0},
+//     {}
+// }
 
-    }
+// MODULE_DEVICE_TABLE(i2c, i2c_ids);
 
-    return 0;
-};
+// static int i2c_deivce_probe(
+//     struct i2c_client *client,
+//     const struct i2c_device_id *id
+// ) {
+//     pr_info("usb_to_i2c: Probe function\n");
 
+//     // struct device = client->dev;
 
-// Placeholder probe
-// static int device_probe(struct platform_device *platform_device_ptr) {
-//     dev_info(
-//         &platform_device_ptr->dev,
-//         "usb_to_i2c: Probe function is falled\n"
-//     );
+//     // 0x17 is the temporary hard coded address of the i2c device.
+//     // Later should be replaced with a read of device tree
+//     if (!client->addr = 0x17) {
+//         pr_info("usb_to_i2c: i2c device address does not match target");
+//         return -1;
 
-//     // if (!device_property_present(dev, "compatible")) {
-//     //     pr_err("Cannot get compatiable string");
-//     //     return -1;
-
-//     // }
+//     }
 
 //     return 0;
+// };
 
+// // Placeholder probe
+// // static int device_probe(struct platform_device *platform_device_ptr) {
+// //     dev_info(
+// //         &platform_device_ptr->dev,
+// //         "usb_to_i2c: Probe function is falled\n"
+// //     );
+
+// //     // if (!device_property_present(dev, "compatible")) {
+// //     //     pr_err("Cannot get compatiable string");
+// //     //     return -1;
+
+// //     // }
+
+// //     return 0;
+
+// // }
+
+
+// static int i2c_device_remove(struct i2c_lient *client) {
+//     pr_info("usb_to_i2c: Probe function\n");
+
+//     return 0;
 // }
 
+// // Placeholder remove
+// // static void device_remove(struct platform_device *platform_device_ptr) {
+// //     dev_info(
+// //         &platform_device_ptr->dev,
+// //         "usb_to_i2c: Remove function is falled\n"
+// //     );
 
-static int i2c_device_remove(struct i2c_lient *client) {
-    pr_info("usb_to_i2c: Probe function\n");
+// // }
 
-    return 0;
-}
-
-static struct i2c_device_id i2c_ids[] {
-    {"usb_to_i2c_converter", 0},
-    {}
-}
-
-MODULE DEVICE_TABLE(i2c, i2c_ids);
-
-// Placeholder remove
-// static void device_remove(struct platform_device *platform_device_ptr) {
-//     dev_info(
-//         &platform_device_ptr->dev,
-//         "usb_to_i2c: Remove function is falled\n"
-//     );
-
-// }
-
-static struct i2c_driver driver_info {
-    .probe = i2c_device_probe,
-    .remove = i2c_device_remove,
-    .id_table = i2c_ids,
-    .driver = {
-        .name = "usb_to_i2c_driver",
-        .of_match_table = device_ids
-    }
-};
+// static struct i2c_driver driver_info {
+//     .probe = i2c_device_probe,
+//     .remove = i2c_device_remove,
+//     .id_table = i2c_ids,
+//     .driver = {
+//         .name = "usb_to_i2c_driver",
+//         .of_match_table = device_ids
+//     }
+// };
 
 
 // Represents the device number. Contains the major and minor numbers
@@ -163,7 +168,9 @@ static int __init module_init_func(void) {
     
     pr_info("usb_to_i2c: Created device under /sys/class/usb_to_i2c_class0\n");
     
-    return platform_driver_register(&driver_info);;
+    return i2c_add_driver(get_i2c_driver_info());
+    // return platform_driver_register(get_i2c_driver_info());
+    // return platform_driver_register(&driver_info);
     
 delete_class:
     class_unregister(device_class);
@@ -188,14 +195,13 @@ static void __exit module_end_func(void) {
     cdev_del(&cdev_info);
     unregister_chrdev_region(device_number, MINORMASK + 1);
     
-    platform_driver_unregister(&driver_info);
+    i2c_del_driver(get_i2c_driver_info());
+    // platform_driver_unregister(&driver_info);
 
 }
     
 module_init(module_init_func);
 module_exit(module_end_func);
-
-MODULE_DEVICE_TABLE(of, device_ids);
 
 MODULE_LICENSE("Dual MIT/GPL");
 MODULE_DESCRIPTION("Read data USB devices hosted by Pi Pico I2C slave");

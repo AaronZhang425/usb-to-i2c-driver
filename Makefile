@@ -1,6 +1,6 @@
 obj-m += usb_to_i2c_driver.o
 
-usb_to_i2c_driver-y := src/main.o src/driver_file_operations_util.o
+usb_to_i2c_driver-y := src/main.o src/file_operations_util.o src/hardware_handler.o
 
 ccflags-y += -I$(PWD)/include -Wextra
 
