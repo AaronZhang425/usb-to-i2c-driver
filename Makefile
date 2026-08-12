@@ -8,8 +8,6 @@ DEVICE_TREE := detect_hw
 
 all:
 	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) modules
-
-dtbo:
 	dtc -@ -I dts -O dtb -o $(PWD)/$(DEVICE_TREE).dtbo $(PWD)/dts/$(DEVICE_TREE).dts
 
 clean:
