@@ -11,6 +11,11 @@
 
 #include "file_operations_util.h"
 
+// Represents the device number. Contains the major and minor numbers
+struct i2c_client_management_info {
+    
+};
+
 static dev_t device_number;
 
 static struct cdev cdev_info;
@@ -38,7 +43,14 @@ static int i2c_device_probe(
     pr_info("usb_to_i2c: Probe function\n");
 
     // struct device = client->dev;
-    
+    struct i2c_client_management_info *i2c_management_data = devm_kzmalloc(
+        &client->dev,
+        sizeof(struct i2c_client_management_info),
+        GFP_KERNEL
+    )
+
+    i2c_set_clientdata(client, i2c_management_data);
+
     if (client->addr != 0x17) {
         pr_info("usb_to_i2c: i2c device address does not match target");
         return -1;
@@ -70,6 +82,10 @@ static int i2c_device_probe(
 static void i2c_device_remove(struct i2c_client *client) {
     pr_info("usb_to_i2c: Probe function\n");
 
+    struct i2c_client_management_info *i2c_management_data = i2c_get_clientdata(
+        client
+    );
+
     device_destroy(device_class, device_number);
 
 }
@@ -84,23 +100,19 @@ static struct i2c_driver driver_info = {
     }
 };
 
-// Represents the device number. Contains the major and minor numbers
 
 static int __init module_init_func(void) {
     pr_notice("Initializing the custom usb_to_i2c module\n");
     
-    // return platform_driver_register(&driver_info);
     // Stores the status of operations
     int status;
     
 #ifdef STATIC_DEVICE_NUMBER
     device_number = STATIC_DEVICE_NUMBER;
     status = register_chrdev_region(device_number, MINORMASK + 1, "usb_to_i2c");
-    
 #else
     // Dynamically allocate a region of minor device numbers
     status = alloc_chrdev_region(&device_number, 0, MINORMASK + 1, "usb_to_i2c");
-
 #endif
     
     if (status) {
@@ -139,31 +151,8 @@ static int __init module_init_func(void) {
         
     }
     
-    // if (
-    //     !device_create(
-    //         device_class,
-    //         NULL,
-    //         device_number,
-    //         NULL,
-    //         "usb_to_i2c%d",
-    //         0
-    //     )
-    // ) {
-    //     pr_err("usb_to_i2c: Could not create \"usb_to_i2c_class0\" device\n");       
-    //     status = ENOMEM;
-    //     goto delete_class;
-        
-    // }
-    
-    // pr_info("usb_to_i2c: Created device under /sys/class/usb_to_i2c_class0\n");
-    
     return i2c_add_driver(&driver_info);
-    // return platform_driver_register(&driver_info);
-    
-// delete_class:
-//     class_unregister(device_class);
-//     class_destroy(device_class);
-    
+
 delete_cdev:
     cdev_del(&cdev_info);
     
