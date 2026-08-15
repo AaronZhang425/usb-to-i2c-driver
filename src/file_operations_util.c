@@ -21,7 +21,7 @@ static int open_file(struct inode *inode_ptr, struct file *file_ptr) {
 
     if (!file_ptr->private_data) {
         pr_err("usb_to_i2c: Out of memory\n");
-        return ENOMEM;
+        return -ENOMEM;
 
     }
 
@@ -99,7 +99,7 @@ static long int file_ioctl(
     switch (cmd) {
 
         default:
-            return EOPNOTSUPP;
+            return -EOPNOTSUPP;
 
     }
     

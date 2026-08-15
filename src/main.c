@@ -49,6 +49,12 @@ static int i2c_device_probe(
         GFP_KERNEL
     )
 
+    if (i2c_management_data) {
+        pr_err("usb_to_i2c: Not enouth memory to allocate private data for i2c client");
+        return -ENOMEM;
+
+    }
+
     i2c_set_clientdata(client, i2c_management_data);
 
     if (client->addr != 0x17) {
@@ -68,7 +74,7 @@ static int i2c_device_probe(
         )
     ) {
         pr_err("usb_to_i2c: Could not create \"usb_to_i2c_class0\" device\n");       
-        return ENOMEM;
+        return -ENOMEM;
         // goto delete_class;
         
     }
