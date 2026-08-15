@@ -8,18 +8,19 @@
 #include <linux/mod_devicetable.h>
 #include <linux/platform_device.h>
 #include <linux/property.h>
+#include <linux/idr.h>
 
 #include "file_operations_util.h"
 
 // Represents the device number. Contains the major and minor numbers
 struct i2c_client_management_info {
-    
+    dev_t dev_num;
 };
 
-static dev_t device_number;
+static DEFINE_IDA(id_allocator);
 
+static dev_t base_device_num;
 static struct cdev cdev_info;
-
 static struct class *device_class;
 
 static const struct of_device_id device_ids[] = {
@@ -43,17 +44,35 @@ static int i2c_device_probe(
     pr_info("usb_to_i2c: Probe function\n");
 
     // struct device = client->dev;
-    struct i2c_client_management_info *i2c_management_data = devm_kzmalloc(
+    struct i2c_client_management_info *i2c_management_data = devm_kzalloc(
         &client->dev,
         sizeof(struct i2c_client_management_info),
         GFP_KERNEL
-    )
+    );
 
     if (i2c_management_data) {
         pr_err("usb_to_i2c: Not enouth memory to allocate private data for i2c client");
         return -ENOMEM;
 
     }
+
+    int minor_num = ida_alloc_range(&id_allocator, 0, MINORMASK, GFP_KERNEL);
+
+    if (minor_num == -ENOMEM) {
+        pr_err("usb_to_i2c: Not enouth memory to allocate another minor num");
+        return -ENOMEM;
+
+    }
+
+    if (minor_num == -ENOSPC) {
+        pr_err("usb_to_i2c: No more ids for minor num");
+        return -ENOSPC;
+
+    }
+
+    i2c_management_data->dev_num = MKDEV(
+        MAJOR(base_device_num), minor_num
+    );
 
     i2c_set_clientdata(client, i2c_management_data);
 
@@ -67,7 +86,7 @@ static int i2c_device_probe(
         !device_create(
             device_class,
             NULL,
-            device_number,
+            i2c_management_data->dev_num,
             NULL,
             "usb_to_i2c%d",
             0
@@ -92,7 +111,9 @@ static void i2c_device_remove(struct i2c_client *client) {
         client
     );
 
-    device_destroy(device_class, device_number);
+    ida_free(&id_allocator, MINOR(i2c_management_data->dev_num));
+
+    device_destroy(device_class, i2c_management_data->dev_num);
 
 }
 
@@ -113,12 +134,12 @@ static int __init module_init_func(void) {
     // Stores the status of operations
     int status;
     
-#ifdef STATIC_DEVICE_NUMBER
-    device_number = STATIC_DEVICE_NUMBER;
-    status = register_chrdev_region(device_number, MINORMASK + 1, "usb_to_i2c");
+#ifdef STATIC_DEV_NUM
+    base_device_num = STATIC_DEV_NUM;
+    status = register_chrdev_region(base_device_num, MINORMASK + 1, "usb_to_i2c");
 #else
     // Dynamically allocate a region of minor device numbers
-    status = alloc_chrdev_region(&device_number, 0, MINORMASK + 1, "usb_to_i2c");
+    status = alloc_chrdev_region(&base_device_num, 0, MINORMASK + 1, "usb_to_i2c");
 #endif
     
     if (status) {
@@ -134,18 +155,18 @@ static int __init module_init_func(void) {
     
     // Create a chracter device
     cdev_init(&cdev_info, driver_fops);
-    status = cdev_add(&cdev_info, device_number, MINORMASK + 1);
+    status = cdev_add(&cdev_info, base_device_num, MINORMASK + 1);
     
     if (status) {
         pr_err("usb_to_i2c: error adding cdev\n");
-        goto free_device_number;
+        goto free_device_num_alloc;
         
     }
     
     pr_info(
-        "usb_to_i2c:\nMajor: %d\nMinor: %d\n",
-        MAJOR(device_number),
-        MINOR(device_number)
+        "usb_to_i2c:\nBase major: %d\nBase minor: %d\n",
+        MAJOR(base_device_num),
+        MINOR(base_device_num)
     );
     
     device_class = class_create("usb_to_i2c_class");
@@ -162,8 +183,8 @@ static int __init module_init_func(void) {
 delete_cdev:
     cdev_del(&cdev_info);
     
-free_device_number:
-    unregister_chrdev_region(device_number, MINORMASK + 1);
+free_device_num_alloc:
+    unregister_chrdev_region(base_device_num, MINORMASK + 1);
     return status;
     
 }
@@ -171,13 +192,15 @@ free_device_number:
 static void __exit module_end_func(void) {
     pr_notice("Exiting the custom Kernel module\n");
     
+    ida_destroy(&id_allocator);
+
     // device_destroy(device_class, device_number);
     i2c_del_driver(&driver_info);
     
     class_unregister(device_class);
     class_destroy(device_class);
     cdev_del(&cdev_info);
-    unregister_chrdev_region(device_number, MINORMASK + 1);
+    unregister_chrdev_region(base_device_num, MINORMASK + 1);
     
     // platform_driver_unregister(&driver_info);
 
