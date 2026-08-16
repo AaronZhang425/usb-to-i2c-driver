@@ -12,7 +12,7 @@
 #include "file_operations_util.h"
 
 // #define STATIC_DEV_NUM
-// #define MAX_DEVICES
+#define MAX_DEVICES 4
 
 struct i2c_client_management_info {
     dev_t dev_num;
@@ -63,7 +63,7 @@ static int i2c_device_probe(
     }
 
 #ifdef MAX_DEVICES
-    int minor_num = ida_alloc_rante(&id_allocator, 0, MAX_DEVICES - 1, GFP_KERNEL);
+    int minor_num = ida_alloc_range(&id_allocator, 0, MAX_DEVICES - 1, GFP_KERNEL);
 #else
     int minor_num = ida_alloc_range(&id_allocator, 0, MINORMASK, GFP_KERNEL);
 #endif
