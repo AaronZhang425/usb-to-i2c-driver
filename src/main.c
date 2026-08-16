@@ -3,7 +3,6 @@
 #include <linux/init.h>
 #include <linux/cdev.h>
 #include <linux/i2c.h>
-#include <linux/i2c-dev.h>
 #include <linux/slab.h>
 #include <linux/mod_devicetable.h>
 #include <linux/platform_device.h>
@@ -12,21 +11,23 @@
 
 #include "file_operations_util.h"
 
-// Represents the device number. Contains the major and minor numbers
+// #define STATIC_DEV_NUM
+// #define MAX_DEVICES
+
 struct i2c_client_management_info {
     dev_t dev_num;
 };
 
 static DEFINE_IDA(id_allocator);
 
+// Represents the base device number. Only the major number component is used
 static dev_t base_device_num;
 static struct cdev cdev_info;
 static struct class *device_class;
 
 static const struct of_device_id device_ids[] = {
-    {.compatible = "pipico,usb_to_i2c_converter"},
+    {.compatible = "aaron,usb_to_i2c_converter"},
     {} /*Empty element signifies end of list*/
-
 };
 
 MODULE_DEVICE_TABLE(of, device_ids);
@@ -43,7 +44,12 @@ static int i2c_device_probe(
 ) {
     pr_info("usb_to_i2c: Probe function\n");
 
-    // struct device = client->dev;
+    if (client->addr != 0x17) {
+        pr_info("usb_to_i2c: i2c device address does not match target");
+        return -1;
+
+    }
+    
     struct i2c_client_management_info *i2c_management_data = devm_kzalloc(
         &client->dev,
         sizeof(struct i2c_client_management_info),
@@ -56,7 +62,11 @@ static int i2c_device_probe(
 
     }
 
+#ifdef MAX_DEVICES
+    int minor_num = ida_alloc_rante(&id_allocator, 0, MAX_DEVICES - 1, GFP_KERNEL);
+#else
     int minor_num = ida_alloc_range(&id_allocator, 0, MINORMASK, GFP_KERNEL);
+#endif
 
     if (minor_num == -ENOMEM) {
         pr_err("usb_to_i2c: Not enouth memory to allocate another minor num");
@@ -76,12 +86,6 @@ static int i2c_device_probe(
 
     i2c_set_clientdata(client, i2c_management_data);
 
-    if (client->addr != 0x17) {
-        pr_info("usb_to_i2c: i2c device address does not match target");
-        return -1;
-
-    }
-
     if (
         !device_create(
             device_class,
@@ -92,7 +96,7 @@ static int i2c_device_probe(
             0
         )
     ) {
-        pr_err("usb_to_i2c: Could not create \"usb_to_i2c_class0\" device\n");       
+        pr_err("usb_to_i2c: Could not create \"usb_to_i2c_class[#]\" device\n");       
         return -ENOMEM;
         // goto delete_class;
         
@@ -134,7 +138,8 @@ static int __init module_init_func(void) {
     // Stores the status of operations
     int status;
     
-#ifdef STATIC_DEV_NUM
+
+#ifdef STATIC_DEV_NUM // If a static device number is defined, use it.
     base_device_num = STATIC_DEV_NUM;
     status = register_chrdev_region(base_device_num, MINORMASK + 1, "usb_to_i2c");
 #else

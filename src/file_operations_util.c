@@ -2,7 +2,6 @@
 #include <linux/module.h>
 #include <linux/cdev.h>
 #include <linux/i2c.h>
-#include <linux/i2c-dev.h>
 #include <linux/fs.h>
 
 #include "file_operations_util.h"
