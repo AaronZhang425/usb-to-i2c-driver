@@ -5,8 +5,17 @@
 #include <linux/fs.h>
 
 #include "file_operations_util.h"
+#include "driver_config.h"
 
+// Indexes i2c clients using the minor device number as index
+struct i2c_client *indexed_i2c_clients[MAX_DEVICES];
+
+// Tempory; for experimentation
 #define MEMSIZE 64
+
+struct private_data_container {
+    unsigned short i2c_addr;
+};
 
 static int open_file(struct inode *inode_ptr, struct file *file_ptr) {
     pr_info("usb_to_i2c: open called");
@@ -16,13 +25,34 @@ static int open_file(struct inode *inode_ptr, struct file *file_ptr) {
         iminor(inode_ptr)
     );
 
-    file_ptr->private_data = kmalloc(MEMSIZE, GFP_KERNEL);
+    file_ptr->private_data = kzalloc(
+        sizeof(struct private_data_container),
+        GFP_KERNEL
+    );
 
     if (!file_ptr->private_data) {
         pr_err("usb_to_i2c: Out of memory\n");
         return -ENOMEM;
 
     }
+
+    struct *i2c_client i2c_client_ptr = indexed_i2c_clients[MINOR(inode_ptr->i_rdev)];
+
+    if (!i2c_client_ptr) {
+        pr_err("usb_to_i2c: Cannot access i2c_client for given minor device number");
+        return -ENODEV;
+
+    }
+
+    ((struct private_data_container*) file_ptr->private_data)->i2c_addr = (
+        i2c_client_ptr->addr
+    );
+
+    // const unsigned short i2c_addr = (
+    //     indexed_i2c_clients[MINOR(inode_ptr->i_rdev)]->addr
+    // );
+
+    // file_ptr->private_data = kmalloc(MEMSIZE, GFP_KERNEL);
 
     return 0;
     
@@ -37,6 +67,7 @@ static int release_file(struct inode *inode_ptr, struct file *file_ptr) {
     );
 
     kfree(file_ptr->private_data);
+    file_ptr->private_data = NULL;
 
     return 0;
 
@@ -116,7 +147,7 @@ static struct file_operations driver_fops = {
     .unlocked_ioctl = file_ioctl
 };
 
-const struct file_operations *getFileOperations(void) {
+const struct file_operations *get_file_operations(void) {
     return &driver_fops; 
 
 }

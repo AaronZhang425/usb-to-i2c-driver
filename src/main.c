@@ -9,10 +9,8 @@
 #include <linux/property.h>
 #include <linux/idr.h>
 
+#include "driver_config.h"
 #include "file_operations_util.h"
-
-// #define STATIC_DEV_NUM
-#define MAX_DEVICES 4
 
 struct i2c_client_management_info {
     dev_t dev_num;
@@ -86,6 +84,8 @@ static int i2c_device_probe(
 
     i2c_set_clientdata(client, i2c_management_data);
 
+    indexed_i2c_clients[minor_num] = client;
+
     if (
         !device_create(
             device_class,
@@ -115,7 +115,11 @@ static void i2c_device_remove(struct i2c_client *client) {
         client
     );
 
-    ida_free(&id_allocator, MINOR(i2c_management_data->dev_num));
+    dev_t dev_num = i2c_management_data->device_num;
+
+    indexed_i2c_clients[MINOR(dev_num)] = NULL;
+
+    ida_free(&id_allocator, MINOR(dev_num));
 
     device_destroy(device_class, i2c_management_data->dev_num);
 
@@ -139,7 +143,7 @@ static int __init module_init_func(void) {
     int status;
     
 
-#ifdef STATIC_DEV_NUM // If a static device number is defined, use it.
+#ifdef STATIC_BASE_DEV_NUM // If a static device number is defined, use it.
     base_device_num = STATIC_DEV_NUM;
     status = register_chrdev_region(base_device_num, MINORMASK + 1, "usb_to_i2c");
 #else
@@ -156,7 +160,7 @@ static int __init module_init_func(void) {
     cdev_info.owner = THIS_MODULE;
     
     // Get the driver file operations available
-    const struct file_operations *driver_fops = getFileOperations();
+    const struct file_operations *driver_fops = get_file_operations();
     
     // Create a chracter device
     cdev_init(&cdev_info, driver_fops);

@@ -1,0 +1,7 @@
+#ifndef DRIVER_CONFIG_H
+#define DRIVER_CONFIG_H
+
+// #define STATIC_BASE_DEV_NUM MKDEV(256, 0)
+#define MAX_DEVICES 4
+
+#endif
