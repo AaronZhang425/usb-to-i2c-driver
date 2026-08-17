@@ -10,9 +10,6 @@
 // Indexes i2c clients using the minor device number as index
 struct i2c_client *indexed_i2c_clients[MAX_DEVICES];
 
-// Tempory; for experimentation
-#define MEMSIZE 64
-
 struct private_data_container {
     unsigned short i2c_addr;
 };
@@ -36,7 +33,7 @@ static int open_file(struct inode *inode_ptr, struct file *file_ptr) {
 
     }
 
-    struct *i2c_client i2c_client_ptr = indexed_i2c_clients[MINOR(inode_ptr->i_rdev)];
+    struct *i2c_client i2c_client_ptr = indexed_i2c_clients[iminor(inode_ptr)];
 
     if (!i2c_client_ptr) {
         pr_err("usb_to_i2c: Cannot access i2c_client for given minor device number");
@@ -47,10 +44,6 @@ static int open_file(struct inode *inode_ptr, struct file *file_ptr) {
     ((struct private_data_container*) file_ptr->private_data)->i2c_addr = (
         i2c_client_ptr->addr
     );
-
-    // const unsigned short i2c_addr = (
-    //     indexed_i2c_clients[MINOR(inode_ptr->i_rdev)]->addr
-    // );
 
     // file_ptr->private_data = kmalloc(MEMSIZE, GFP_KERNEL);
 
@@ -65,6 +58,8 @@ static int release_file(struct inode *inode_ptr, struct file *file_ptr) {
         imajor(inode_ptr),
         iminor(inode_ptr)
     );
+
+    indexed_i2c_clients[iminor(inode_ptr)] = NULL;
 
     kfree(file_ptr->private_data);
     file_ptr->private_data = NULL;
