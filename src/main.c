@@ -10,7 +10,7 @@
 #include <linux/idr.h>
 
 #include "driver_config.h"
-#include "file_operations_util.h"
+#include "root_i2c_dev_fops.h"
 
 struct i2c_client_management_info {
     dev_t dev_num;
