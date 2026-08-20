@@ -1,5 +1,3 @@
-#include "driver_config.h"
-
 #ifndef FILE_OPERATIONS_UTIL_H
 #define FILE_OPERATIONS_UTIL_H
 

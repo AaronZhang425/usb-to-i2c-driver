@@ -1,5 +1,6 @@
 #include <linux/kernel.h>
 #include <linux/module.h>
+#include <linux/types.h>
 #include <linux/init.h>
 #include <linux/cdev.h>
 #include <linux/i2c.h>
@@ -11,6 +12,7 @@
 
 #include "driver_config.h"
 #include "root_i2c_dev_fops.h"
+#include "i2c_dev_commands.h"
 
 struct i2c_client_management_info {
     dev_t dev_num;
@@ -37,9 +39,7 @@ static struct i2c_device_id i2c_ids[] = {
 
 MODULE_DEVICE_TABLE(i2c, i2c_ids);
 
-static int i2c_device_probe(
-    struct i2c_client *client
-) {
+static int i2c_device_probe(struct i2c_client *client) {
     pr_info("usb_to_i2c: Probe function\n");
 
     if (client->addr != 0x17) {
@@ -102,7 +102,48 @@ static int i2c_device_probe(
         
     }
     
+    
     pr_info("usb_to_i2c: Created device under /sys/class/usb_to_i2c_class0\n");    
+
+    // uint8_t read_buffer[I2C_INIT_BUFFER_SIZE] = {0};
+
+    // First element is size of each init block
+    // Second element is number of init blocks
+    __u8 start_signal = INIT_SIG;
+    __u8 init_buffer_config[2] = {0};
+
+    struct i2c_msg msgs[] = {
+        {
+            .addr = client->addr,
+            .flags = 0,
+            .len = 1,
+            .buf = &INIT_SIG
+        },
+        {
+            .addr = client->addr,
+            .flags = I2C_M_RD,
+            .len = 2, // bytes to read; not msgs length or num of msg
+            .buf = init_buffer_config
+        }
+    };
+
+    int msgs_sent = -1;
+    
+    for (int i = 0; i < 3 && msgs_sent != 2; i++) {
+        msgs_sent = i2c_transfer(client->adapter, msgs, 2);
+
+    }
+
+    if (msgs_sent != 2) {
+        pr_err("usb_to_i2c: Cannot get size of init buffer. Tried 3 times.\n");
+        pr_info("usb_to_i2c: Number of msgs sent in last attempt: %u\n", msgs_sent);
+        pr_info("usb_to_i2c: Expected to send 2 msgs\n");
+
+        return -EIO; 
+
+    }
+
+    __u8 init_buffer[init_buffer_config[0] * init_buffer_config[1]] = {0};
 
     return 0;
 
@@ -115,7 +156,7 @@ static void i2c_device_remove(struct i2c_client *client) {
         client
     );
 
-    dev_t dev_num = i2c_management_data->device_num;
+    dev_t dev_num = i2c_management_data->dev_num;
 
     indexed_i2c_clients[MINOR(dev_num)] = NULL;
 

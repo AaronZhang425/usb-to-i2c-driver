@@ -86,18 +86,20 @@ static ssize_t read_file(
 ) {
     pr_info("usb_to_i2c: read called\n");
     
-    char *text = file_ptr -> private_data;
+    // char *text = file_ptr -> private_data;
 
-    int not_copied, delta, to_copy = (
-        (length + *offset) < MEMSIZE ? length : (MEMSIZE - *offset)
-    );
+    // int not_copied, delta, to_copy = (
+    //     (length + *offset) < MEMSIZE ? length : (MEMSIZE - *offset)
+    // );
 
-    not_copied = copy_to_user(user_buffer, &text[*offset], to_copy);
-    delta = to_copy - not_copied;
+    // not_copied = copy_to_user(user_buffer, &text[*offset], to_copy);
+    // delta = to_copy - not_copied;
 
-    *offset += delta;
+    // *offset += delta;
 
-    return delta;
+    // return delta;
+
+    return -ENOTSUPP;
 
 }
 
@@ -109,18 +111,20 @@ static ssize_t write_file(
 ) {
     pr_info("usb_to_i2c: write called\n");
     
-    char *text = file_ptr -> private_data;
+    // char *text = file_ptr -> private_data;
 
-    int not_copied, delta, to_copy = (
-        (length + *offset) < MEMSIZE ? length : (MEMSIZE - *offset)
-    );
+    // int not_copied, delta, to_copy = (
+    //     (length + *offset) < MEMSIZE ? length : (MEMSIZE - *offset)
+    // );
 
-    not_copied = copy_from_user(&text[*offset], user_buffer, to_copy);
-    delta = to_copy - not_copied;
+    // not_copied = copy_from_user(&text[*offset], user_buffer, to_copy);
+    // delta = to_copy - not_copied;
 
-    *offset += delta;
+    // *offset += delta;
 
-    return delta;
+    // return delta;
+
+    return -ENOTSUPP;
 
 }
 
