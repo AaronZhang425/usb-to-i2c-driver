@@ -3,7 +3,7 @@
 
 #define DEIVCE_INIT_SIZE 64
 
-#define GET_NUMBER_OF_DEVICES_SIG 0
+#define GET_MAX_USB_DEV_SIG 0
 #define GET_ALL_DEVICE_STATES_SIG 1
 
 #endif

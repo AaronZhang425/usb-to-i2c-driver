@@ -14,9 +14,14 @@
 #include "root_i2c_dev_fops.h"
 #include "i2c_dev_commands.h"
 
+struct usb_child_slave {
+
+}
+
 struct i2c_client_management_info {
     dev_t dev_num;
-    __u16 devices; 
+    __u16 max_usb_devices;
+    struct usb_child_slave *(usb_children[]); // Array of pointers
 };
 
 static DEFINE_IDA(id_allocator);
@@ -40,64 +45,58 @@ static struct i2c_device_id i2c_ids[] = {
 
 MODULE_DEVICE_TABLE(i2c, i2c_ids);
 
-static int init_device(struct i2c_client *client) {
-    __u8 device_command = GET_NUMBER_OF_DEVICES_SIG;
-
-    __u8 devices = 0;
-
-    struct i2c_msg get_num_dev_msgs[] = {
+// Write command to i2c slave, read response, then send stop bit.
+static int command_and_read_i2c(
+    struct i2c_client *client,
+    __u8 cmd,
+    __u8 *buffer,
+    __u16 length
+) {
+    struct i2c_msg msgs[] {
         {
             .addr = client->addr,
             .flags = 0,
             .len = 1,
-            .buf = &device_command
+            .buf = &cmd
         },
         {
             .addr = client->addr,
             .flags = I2C_M_RD,
-            .len = 1, // bytes to read; not msgs length or num of msg
-            .buf = &devices
-        }      
-    };
-
-    int msgs_sent = -1;
-    
-    for (int i = 0; i < 3 && msgs_sent != 2; i++) {
-        msgs_sent = i2c_transfer(client->adapter, get_num_dev_msgs, 2);
-
-    }
-
-    if (msgs_sent != 2) {
-        pr_err("usb_to_i2c: Cannot get size of init buffer. Tried 3 times.\n");
-        pr_info("usb_to_i2c: Number of msgs sent in last attempt: %u\n", msgs_sent);
-        pr_info("usb_to_i2c: Expected to send 2 msgs\n");
-
-        return -EIO; 
-
-    }
-
-    __u8 init_buffer[DEIVCE_INIT_SIZE * devices];
-
-    device_command = GET_ALL_DEVICE_STATES_SIG;
-
-    struct i2c_msg get_all_dev_states_msgs[] = {
-        {
-            .addr = client->addr,
-            .flags = 0,
-            .len = 1,
-            .buf = &device_command
-        },
-        {
-            .addr = client->addr,
-            .flags = I2C_M_RD,
-            .len = DEIVCE_INIT_SIZE * devices,
-            .buf = init_buffer
+            .len = length,
+            .buf = buffer
         }
     };
 
-    i2c_transfer(client->adapter, get_all_dev_states_msgs, 2);
+    return i2c_transfer(client->adapter, msgs, 2) == 2 ? 0 : -ECOMM;
 
-    return 0;
+}
+
+static int init_device(struct i2c_client *client) {
+    int status;
+    __u8 max_usb_devices = 0;
+
+    status = command_and_read_i2c(
+        client,
+        GET_MAX_USB_DEV_SIG,
+        &devices,
+        1
+    );
+
+    if (status) {
+        return status;
+
+    }
+
+    __u8 init_buffer[DEIVCE_INIT_SIZE * max_usb_devices];
+
+    status = command_and_read_i2c(
+        client,
+        GET_ALL_DEVICE_STATES_SIG,
+        init_buffer,
+        DEVICE_INIT_SIZE * max_usb_devices
+    );
+
+    return status;
 
 }
 
@@ -122,8 +121,12 @@ static int i2c_device_probe(struct i2c_client *client) {
 
     }
 
-#ifdef MAX_DEVICES
-    int minor_num = ida_alloc_range(&id_allocator, 0, MAX_DEVICES - 1, GFP_KERNEL);
+#ifdef MAX_I2C_DEVICES
+    int minor_num = ida_alloc_range(
+        &id_allocator, 0,
+        MAX_I2C_DEVICES - 1,
+        GFP_KERNEL
+    );
 #else
     int minor_num = ida_alloc_range(&id_allocator, 0, MINORMASK, GFP_KERNEL);
 #endif
@@ -168,46 +171,6 @@ static int i2c_device_probe(struct i2c_client *client) {
     pr_info("usb_to_i2c: Created device under /sys/class/usb_to_i2c_class0\n");    
 
     init_device(client);
-
-    // // First element is size of each init block
-    // // Second element is number of init blocks
-    // __u8 buffer_sizing_config[2] = {0};
-
-    // struct i2c_msg msgs[] = {
-    //     {
-    //         .addr = client->addr,
-    //         .flags = 0,
-    //         .len = 1,
-    //         .buf = &start_signal
-    //     },
-    //     {
-    //         .addr = client->addr,
-    //         .flags = I2C_M_RD,
-    //         .len = 2, // bytes to read; not msgs length or num of msg
-    //         .buf = buffer_sizing_config
-    //     }
-    // };
-
-    // int msgs_sent = -1;
-    
-    // for (int i = 0; i < 3 && msgs_sent != 2; i++) {
-    //     msgs_sent = i2c_transfer(client->adapter, msgs, 2);
-
-    // }
-
-    // if (msgs_sent != 2) {
-    //     pr_err("usb_to_i2c: Cannot get size of init buffer. Tried 3 times.\n");
-    //     pr_info("usb_to_i2c: Number of msgs sent in last attempt: %u\n", msgs_sent);
-    //     pr_info("usb_to_i2c: Expected to send 2 msgs\n");
-
-    //     return -EIO; 
-
-    // }
-
-    // __u8 init_buffer[init_buffer_config[0] * init_buffer_config[1]];
-
-
-
 
     return 0;
 

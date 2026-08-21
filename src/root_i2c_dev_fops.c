@@ -8,7 +8,7 @@
 #include "driver_config.h"
 
 // Indexes i2c clients using the minor device number as index
-struct i2c_client *indexed_i2c_clients[MAX_DEVICES];
+struct i2c_client *indexed_i2c_clients[MAX_I2C_DEVICES];
 
 // struct private_data_container {
 //     unsigned short i2c_addr;
