@@ -1,6 +1,9 @@
 #ifndef I2C_DEV_COMMANDS_H
 #define I2C_DEV_COMMANDS_H
 
-#define INIT_SIG 0
+#define DEIVCE_INIT_SIZE 64
+
+#define GET_NUMBER_OF_DEVICES_SIG 0
+#define GET_ALL_DEVICE_STATES_SIG 1
 
 #endif

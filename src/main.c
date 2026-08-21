@@ -16,6 +16,7 @@
 
 struct i2c_client_management_info {
     dev_t dev_num;
+    __u16 devices; 
 };
 
 static DEFINE_IDA(id_allocator);
@@ -38,6 +39,67 @@ static struct i2c_device_id i2c_ids[] = {
 };
 
 MODULE_DEVICE_TABLE(i2c, i2c_ids);
+
+static int init_device(struct i2c_client *client) {
+    __u8 device_command = GET_NUMBER_OF_DEVICES_SIG;
+
+    __u8 devices = 0;
+
+    struct i2c_msg get_num_dev_msgs[] = {
+        {
+            .addr = client->addr,
+            .flags = 0,
+            .len = 1,
+            .buf = &device_command
+        },
+        {
+            .addr = client->addr,
+            .flags = I2C_M_RD,
+            .len = 1, // bytes to read; not msgs length or num of msg
+            .buf = &devices
+        }      
+    };
+
+    int msgs_sent = -1;
+    
+    for (int i = 0; i < 3 && msgs_sent != 2; i++) {
+        msgs_sent = i2c_transfer(client->adapter, get_num_dev_msgs, 2);
+
+    }
+
+    if (msgs_sent != 2) {
+        pr_err("usb_to_i2c: Cannot get size of init buffer. Tried 3 times.\n");
+        pr_info("usb_to_i2c: Number of msgs sent in last attempt: %u\n", msgs_sent);
+        pr_info("usb_to_i2c: Expected to send 2 msgs\n");
+
+        return -EIO; 
+
+    }
+
+    __u8 init_buffer[DEIVCE_INIT_SIZE * devices];
+
+    device_command = GET_ALL_DEVICE_STATES_SIG;
+
+    struct i2c_msg get_all_dev_states_msgs[] = {
+        {
+            .addr = client->addr,
+            .flags = 0,
+            .len = 1,
+            .buf = &device_command
+        },
+        {
+            .addr = client->addr,
+            .flags = I2C_M_RD,
+            .len = DEIVCE_INIT_SIZE * devices,
+            .buf = init_buffer
+        }
+    };
+
+    i2c_transfer(client->adapter, get_all_dev_states_msgs, 2);
+
+    return 0;
+
+}
 
 static int i2c_device_probe(struct i2c_client *client) {
     pr_info("usb_to_i2c: Probe function\n");
@@ -105,45 +167,47 @@ static int i2c_device_probe(struct i2c_client *client) {
     
     pr_info("usb_to_i2c: Created device under /sys/class/usb_to_i2c_class0\n");    
 
-    // uint8_t read_buffer[I2C_INIT_BUFFER_SIZE] = {0};
+    init_device(client);
 
-    // First element is size of each init block
-    // Second element is number of init blocks
-    __u8 start_signal = INIT_SIG;
-    __u8 init_buffer_config[2] = {0};
+    // // First element is size of each init block
+    // // Second element is number of init blocks
+    // __u8 buffer_sizing_config[2] = {0};
 
-    struct i2c_msg msgs[] = {
-        {
-            .addr = client->addr,
-            .flags = 0,
-            .len = 1,
-            .buf = &INIT_SIG
-        },
-        {
-            .addr = client->addr,
-            .flags = I2C_M_RD,
-            .len = 2, // bytes to read; not msgs length or num of msg
-            .buf = init_buffer_config
-        }
-    };
+    // struct i2c_msg msgs[] = {
+    //     {
+    //         .addr = client->addr,
+    //         .flags = 0,
+    //         .len = 1,
+    //         .buf = &start_signal
+    //     },
+    //     {
+    //         .addr = client->addr,
+    //         .flags = I2C_M_RD,
+    //         .len = 2, // bytes to read; not msgs length or num of msg
+    //         .buf = buffer_sizing_config
+    //     }
+    // };
 
-    int msgs_sent = -1;
+    // int msgs_sent = -1;
     
-    for (int i = 0; i < 3 && msgs_sent != 2; i++) {
-        msgs_sent = i2c_transfer(client->adapter, msgs, 2);
+    // for (int i = 0; i < 3 && msgs_sent != 2; i++) {
+    //     msgs_sent = i2c_transfer(client->adapter, msgs, 2);
 
-    }
+    // }
 
-    if (msgs_sent != 2) {
-        pr_err("usb_to_i2c: Cannot get size of init buffer. Tried 3 times.\n");
-        pr_info("usb_to_i2c: Number of msgs sent in last attempt: %u\n", msgs_sent);
-        pr_info("usb_to_i2c: Expected to send 2 msgs\n");
+    // if (msgs_sent != 2) {
+    //     pr_err("usb_to_i2c: Cannot get size of init buffer. Tried 3 times.\n");
+    //     pr_info("usb_to_i2c: Number of msgs sent in last attempt: %u\n", msgs_sent);
+    //     pr_info("usb_to_i2c: Expected to send 2 msgs\n");
 
-        return -EIO; 
+    //     return -EIO; 
 
-    }
+    // }
 
-    __u8 init_buffer[init_buffer_config[0] * init_buffer_config[1]] = {0};
+    // __u8 init_buffer[init_buffer_config[0] * init_buffer_config[1]];
+
+
+
 
     return 0;
 
