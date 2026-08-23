@@ -12,11 +12,11 @@
 
 #include "driver_config.h"
 #include "root_i2c_dev_fops.h"
-#include "i2c_dev_commands.h"
+#include "i2c_host_commands.h"
 
 struct usb_child_slave {
 
-}
+};
 
 struct i2c_client_management_info {
     dev_t dev_num;
@@ -52,7 +52,7 @@ static int command_and_read_i2c(
     __u8 *buffer,
     __u16 length
 ) {
-    struct i2c_msg msgs[] {
+    struct i2c_msg msgs[] = {
         {
             .addr = client->addr,
             .flags = 0,
@@ -78,7 +78,7 @@ static int init_device(struct i2c_client *client) {
     status = command_and_read_i2c(
         client,
         GET_MAX_USB_DEV_SIG,
-        &devices,
+        &max_usb_devices,
         1
     );
 
@@ -87,7 +87,7 @@ static int init_device(struct i2c_client *client) {
 
     }
 
-    __u8 init_buffer[DEIVCE_INIT_SIZE * max_usb_devices];
+    __u8 init_buffer[DEVICE_INIT_SIZE * max_usb_devices];
 
     status = command_and_read_i2c(
         client,

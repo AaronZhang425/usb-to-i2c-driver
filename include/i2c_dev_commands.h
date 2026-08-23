@@ -1,9 +1,0 @@
-#ifndef I2C_DEV_COMMANDS_H
-#define I2C_DEV_COMMANDS_H
-
-#define DEIVCE_INIT_SIZE 64
-
-#define GET_MAX_USB_DEV_SIG 0
-#define GET_ALL_DEVICE_STATES_SIG 1
-
-#endif
