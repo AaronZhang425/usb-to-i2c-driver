@@ -87,14 +87,16 @@ static int init_device(struct i2c_client *client) {
 
     }
 
-    __u8 init_buffer[DEVICE_INIT_SIZE * max_usb_devices];
+    __u8 *init_buffer = kcalloc(max_usb_devices, DEVICE_STATE_SIZE, GFP_KERNEL);
 
     status = command_and_read_i2c(
         client,
-        GET_ALL_DEVICE_STATES_SIG,
+        UPDATE_DEVICE_STATES_SIG,
         init_buffer,
-        DEVICE_INIT_SIZE * max_usb_devices
+        DEVICE_STATE_SIZE * max_usb_devices
     );
+
+    kfree(init_buffer);
 
     return status;
 
@@ -210,13 +212,21 @@ static int __init module_init_func(void) {
     // Stores the status of operations
     int status;
     
-
 #ifdef STATIC_BASE_DEV_NUM // If a static device number is defined, use it.
     base_device_num = STATIC_DEV_NUM;
-    status = register_chrdev_region(base_device_num, MINORMASK + 1, "usb_to_i2c");
+    status = register_chrdev_region(
+        base_device_num,
+        MINORMASK + 1,
+        "usb_to_i2c"
+    );
 #else
     // Dynamically allocate a region of minor device numbers
-    status = alloc_chrdev_region(&base_device_num, 0, MINORMASK + 1, "usb_to_i2c");
+    status = alloc_chrdev_region(
+        &base_device_num,
+        0,
+        MINORMASK + 1,
+        "usb_to_i2c"
+    );
 #endif
     
     if (status) {
