@@ -45,6 +45,23 @@ static struct i2c_device_id i2c_ids[] = {
 
 MODULE_DEVICE_TABLE(i2c, i2c_ids);
 
+static int command_i2c(
+    struct i2c_client *client,
+    __u8 cmd,
+) {
+    struct i2c_msg msgs[] = {
+        {
+            .addr = client->addr,
+            .flags = 0,
+            .len = 1,
+            .buf = &cmd
+        }
+    };
+
+    return i2c_transfer(client->adapter, msgs, 1) == 1 ? 0 : -ECOMM;
+
+}
+
 // Write command to i2c slave, read response, then send stop bit.
 static int command_and_read_i2c(
     struct i2c_client *client,
@@ -111,6 +128,8 @@ static int i2c_device_probe(struct i2c_client *client) {
 
     }
     
+    command_i2c(client, NEW_I2C_HOST_SIG);
+
     struct i2c_client_management_info *i2c_management_data = devm_kzalloc(
         &client->dev,
         sizeof(struct i2c_client_management_info),

@@ -7,8 +7,9 @@
 // Arbitraily chosen. Will find better solution later.
 #define DEVICE_STATE_SIZE 64 
 
-#define GET_MAX_USB_DEV_SIG 0
-#define UPDATE_DEVICE_STATES_SIG 1
-#define POLL_DEIVCES_SIG 2
+#define NEW_I2C_HOST_SIG 0
+#define GET_MAX_USB_DEV_SIG 1
+#define UPDATE_DEVICE_STATES_SIG 2
+#define POLL_DEIVCES_SIG 3
 
 #endif
